@@ -18,9 +18,15 @@ If everything went well, alongside `ZzDummy` there should be and
 option called `lintcheck`. This is where you can configure how
 lintcheck works.
 6) If step 5 did not work and you cannot see `lintcheck` with `ZzDummy`,
-but step 4 worked correctly, then it means [bpo-45357](https://github.com/python/cpython/pull/28713)
-has not been accepted or it has but your copy of IDLE is out of date.
-Go to section `Patching IDLE`.
+but step 4 worked correctly, you can either patch IDLE to make it use
+the user config folder as well as default configs in section `Patching IDLE`,
+or you can edit `/usr/lib/python3.X/idlelib/config-extensions.def` and add
+the following lines:
+```
+[lintcheck]
+enable = True
+```
+Note that this will require root privileges on your system to edit this file.
 
 ### Patching IDLE
 1) Create backups of files we will be patching. Linux/macos:
