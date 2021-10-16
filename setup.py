@@ -11,9 +11,10 @@ import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
 
+version = '0.0.0'
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')
-install_requires = (here / 'requirements.txt').read_text(encoding='utf-8')
+install_requires = ['pylint']
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
@@ -38,7 +39,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.0',  # Required
+    version=version,  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -96,7 +97,7 @@ setup(
         'Topic :: Software Development :: Build Tools',
 
         # Pick your license as you wish
-        'License :: OSI Approved :: GPL-3.0 License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate you support Python 3. These classifiers are *not*
