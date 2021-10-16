@@ -6,7 +6,7 @@
 
 # Programmed by CoolCat467
 
-__title__ = 'LintCheck'
+__title__ = 'lintcheck'
 __author__ = 'CoolCat467'
 __version__ = '0.0.0'
 __ver_major__ = 0
@@ -37,7 +37,7 @@ def check_installed():
         if not create:
             return
         os.mkdir(path)
-    # Make sure config-extensions.cfg file exists
+    # Make sure user config-extensions.cfg file exists
     path = os.path.join(path, 'config-extensions.cfg')
     if not os.path.exists(path):
         last = os.path.split(path)[1]
@@ -45,19 +45,36 @@ def check_installed():
             f'Path "{path}" does not exist. Create file "{last}"? (Y/n) : ').lower() != 'n'
         if not create:
             return
-    # Get current data
-    current_data = ''
-    with open(path, mode='r', encoding='utf-8') as config:
-        current_data = config.read()
-        config.close()
-    # If extension does not have section,
-    if not '[lintcheck]' in current_data:
-        print('Adding lintcheck to enabled extensions config...')
-        # Add enable
-        with open(path, mode='a', encoding='utf-8') as config:
-            config.write('[lintcheck]\nenable = True\n')
-            config.close()
-    print('Config should be good!')
+    # Get list of system extensions
+    extensions = list(idleConf.defaultCfg['extensions'])
+    # If this extension not in there,
+    if not __title__ in extensions:
+        # Tell user how to add it to system list.
+        print(f'{__title__} not in system registered extensions!')
+        print(f'Please run the following command to add {__title__} to system extensions list.\n')
+        ex_defaults = idleConf.defaultCfg['extensions'].file
+        add_data = f"[{__title__}]\nenable = True"
+        # Import this extension (this file),
+        module = __import__(__title__)
+        # Get extension class
+        if hasattr(module, __title__):
+            cls = getattr(module, __title__)
+            # Get extension class keybinding defaults
+            if hasattr(cls, 'bind_defaults'):
+                binds = cls.bind_defaults
+                values = []
+                # Get keybindings data
+                if isinstance(binds, dict):
+                    for event, key in binds.items():
+                        values.append(str(event)+' = '+str(key))
+                values = '\n'.join(values)
+                # Add to add_data
+                add_data += f"\n[{__title__}_cfgBindings]\n{values}"
+        # Make sure linebreaks will go properly in terminal
+        add_data = add_data.replace('\n', '\\n')
+        # Tell them command
+        print(f"sudo echo $'{add_data}' >> {ex_defaults}")
+        print()
 
 def get_line_indent(text:str, char:str=' ') -> int:
     "Return line indent."
