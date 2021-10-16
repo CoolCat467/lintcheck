@@ -26,55 +26,45 @@ except ImportError:
     print(f'{__file__}: Pylint not installed!')
     _HAS_LINT = False
 
-def check_installed():
+def check_installed() -> bool:
     "Make sure extension installed."
-    # Make sure ~/.idlerc folder exists
-    path = os.path.join(os.path.expanduser('~'), '.idlerc')
-    if not os.path.exists(path):
-        last = os.path.split(path)[1]
-        create = input(
-            f'Path "{path}" does not exist. Create folder "{last}"? (Y/n) : ').lower() != 'n'
-        if not create:
-            return
-        os.mkdir(path)
-    # Make sure user config-extensions.cfg file exists
-    path = os.path.join(path, 'config-extensions.cfg')
-    if not os.path.exists(path):
-        last = os.path.split(path)[1]
-        create = input(
-            f'Path "{path}" does not exist. Create file "{last}"? (Y/n) : ').lower() != 'n'
-        if not create:
-            return
     # Get list of system extensions
     extensions = list(idleConf.defaultCfg['extensions'])
     # If this extension not in there,
-    if not __title__ in extensions:
+    if __title__ not in extensions:
         # Tell user how to add it to system list.
         print(f'{__title__} not in system registered extensions!')
         print(f'Please run the following command to add {__title__} to system extensions list.\n')
         ex_defaults = idleConf.defaultCfg['extensions'].file
-        add_data = f"[{__title__}]\nenable = True"
+        
         # Import this extension (this file),
         module = __import__(__title__)
         # Get extension class
         if hasattr(module, __title__):
             cls = getattr(module, __title__)
             # Get extension class keybinding defaults
+            add_data = ''
+            if hasattr(cls, 'values'):
+                # Get config defaults
+                values = [f'{key} = {default}' for key, default in cls.values.items()]
+                values = '\n'.join(values)
+                # Add to add_data
+                add_data += f"\n[{__title__}]\n{values}"
             if hasattr(cls, 'bind_defaults'):
-                binds = cls.bind_defaults
-                values = []
                 # Get keybindings data
-                if isinstance(binds, dict):
-                    for event, key in binds.items():
-                        values.append(str(event)+' = '+str(key))
+                values = [f'{event} = {key}' for event, key in cls.bind_defaults.items()]
                 values = '\n'.join(values)
                 # Add to add_data
                 add_data += f"\n[{__title__}_cfgBindings]\n{values}"
         # Make sure linebreaks will go properly in terminal
         add_data = add_data.replace('\n', '\\n')
         # Tell them command
-        print(f"sudo echo $'{add_data}' >> {ex_defaults}")
+        print(f"sudo echo -e '{add_data}' | sudo tee -a {ex_defaults}")
         print()
+    else:
+        print('Config should be good!')
+        return True
+    return False
 
 def get_line_indent(text:str, char:str=' ') -> int:
     "Return line indent."
@@ -153,34 +143,34 @@ class lintcheck:
         self.text.bind('<<lint-check>>', self.lint_check_event)
         self.text.bind('<<lint-remove-comments>>', self.remove_lint_comments_event)
 
-    @classmethod
-    def ensure_bindings_exist(cls) -> bool:
-        "Ensure key bindings exist in user extensions config. Return True if need to save."
-        need_save = False
-        section = cls.__name__+'_cfgBindings'
-        if ensure_section_exists(section):
-            need_save = True
-        if ensure_values_exist_in_section(section, cls.bind_defaults):
-            need_save = True
-        return need_save
-
-    @classmethod
-    def ensure_config_exists(cls):
-        "Ensure required configuration exists for this extention. Return True if need to save."
-        need_save = False
-        if ensure_section_exists(cls.__name__):
-            need_save = True
-        if ensure_values_exist_in_section(cls.__name__, cls.values):
-            need_save = True
-        return need_save
+##    @classmethod
+##    def ensure_bindings_exist(cls) -> bool:
+##        "Ensure key bindings exist in user extensions config. Return True if need to save."
+##        need_save = False
+##        section = cls.__name__+'_cfgBindings'
+##        if ensure_section_exists(section):
+##            need_save = True
+##        if ensure_values_exist_in_section(section, cls.bind_defaults):
+##            need_save = True
+##        return need_save
+##
+##    @classmethod
+##    def ensure_config_exists(cls):
+##        "Ensure required configuration exists for this extention. Return True if need to save."
+##        need_save = False
+##        if ensure_section_exists(cls.__name__):
+##            need_save = True
+##        if ensure_values_exist_in_section(cls.__name__, cls.values):
+##            need_save = True
+##        return need_save
 
     @classmethod
     def reload(cls):
         "Load class variables from config."
-        # Ensure file default values exist so they appear in setting menu
-        save = cls.ensure_config_exists()
-        if cls.ensure_bindings_exist() or save:
-            idleConf.SaveUserCfgFiles()
+##        # Ensure file default values exist so they appear in settings menu
+##        save = cls.ensure_config_exists()
+##        if cls.ensure_bindings_exist() or save:
+##            idleConf.SaveUserCfgFiles()
         # For all possible config values
         for key in cls.values:
             # Set attribute of key name to key value from config file
@@ -306,5 +296,5 @@ class lintcheck:
 lintcheck.reload()
 
 if __name__ == '__main__':
-    print(f'{__title__} v{__version__}\nProgrammed by {__author__}.')
+    print(f'{__title__} v{__version__}\nProgrammed by {__author__}.\n')
     check_installed()
