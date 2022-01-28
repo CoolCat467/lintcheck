@@ -1,0 +1,49 @@
+Metadata-Version: 2.1
+Name: lintcheck
+Version: 0.1.0
+Summary: Pylint extension for IDLE
+Home-page: https://github.com/CoolCat467/lintcheck
+Author: CoolCat467
+License: UNKNOWN
+Project-URL: Bug Reports, https://github.com/CoolCat467/lintcheck/issues
+Project-URL: Source, https://github.com/CoolCat467/lintcheck
+Keywords: pylint,idle,extension,development
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.6, <4
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# LintCheck
+Python IDLE extension to preform pylint analysis on an open file
+
+## Installation
+1) Go to terminal and install with `pip install lintcheck`.
+2) Run command `lintcheck`. You will likely see a message saying
+`lintcheck not in system registered extensions!`. Run the command
+given to add lintcheck to your system's IDLE extension config file.
+3) Again run command `lintcheck`. This time, you should see the following
+output: `Config should be good!`.
+4) Open IDLE, go to `Options` -> `Configure IDLE` -> `Extensions`.
+If everything went well, alongside `ZzDummy` there should be and
+option called `lintcheck`. This is where you can configure how
+lintcheck works.
+
+### Information on options
+Option `ignore` is a list of pylint messages,
+seperated by semicolons (;) that should be disabled using `--disable`.
+See `pylint --help` for more information.
+
+Option `jobs` is the number of processes pylint should use when
+checking your code, using `--jobs`. See `pylint --help` for more information.
+
+

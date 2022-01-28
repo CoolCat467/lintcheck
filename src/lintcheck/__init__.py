@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 # Lint Check - Use pylint to check open file, then add comments to file.
 
-"""Lint Check Extension"""
+"Lint Check Extension"
 
 # Programmed by CoolCat467
 
 __title__ = 'lintcheck'
 __author__ = 'CoolCat467'
-__version__ = '0.0.0'
+__version__ = '0.1.0'
 __ver_major__ = 0
-__ver_minor__ = 0
+__ver_minor__ = 1
 __ver_patch__ = 0
 
 import os
@@ -59,7 +59,7 @@ def check_installed() -> bool:
         # Make sure linebreaks will go properly in terminal
         add_data = add_data.replace('\n', '\\n')
         # Tell them command
-        print(f"sudo echo -e '{add_data}' | sudo tee -a {ex_defaults}")
+        print(f"echo -e '{add_data}' | sudo tee -a {ex_defaults}")
         print()
     else:
         print('Config should be good!')
@@ -104,8 +104,8 @@ def ensure_values_exist_in_section(section:str, values:dict) -> bool:
             need_save = True
     return need_save
 
-class lintcheck:
-    """Prepend or remove initial text from selected lines."""
+class lintcheck:# pylint: disable=C0103
+    "Add comments from pylint to an open program."
     # Extend the file and format menus.
     menudefs = [
         ('file', [
@@ -119,12 +119,12 @@ class lintcheck:
     values = {'enable': 'True',
               'enable_editor': 'True',
               'enable_shell': 'False',
-              'ignore': 'C0303',
+              'ignore': 'None',
               'jobs': '0'}
     # Default keybinds for config file
     bind_defaults = {'lint-check': '<Control-Shift-Key-C>',
                      'lint-remove-comments': '<Control-Alt-Key-c>'}
-    comment = '# pylint: '
+    comment = '# lintcheck: '
 
     ignore = ''
     jobs = '0'
@@ -138,31 +138,31 @@ class lintcheck:
         self.files = editwin.io#idlelib.iomenu.IOBinding
 
         self.pylint_file = os.path.expanduser(
-            os.path.join('~', '.idlerc', 'pylint-out.json'))
+            os.path.join(idleConf.userdir, 'pylint-out.json'))
 
         self.text.bind('<<lint-check>>', self.lint_check_event)
         self.text.bind('<<lint-remove-comments>>', self.remove_lint_comments_event)
 
-##    @classmethod
-##    def ensure_bindings_exist(cls) -> bool:
-##        "Ensure key bindings exist in user extensions config. Return True if need to save."
-##        need_save = False
-##        section = cls.__name__+'_cfgBindings'
-##        if ensure_section_exists(section):
-##            need_save = True
-##        if ensure_values_exist_in_section(section, cls.bind_defaults):
-##            need_save = True
-##        return need_save
-##
-##    @classmethod
-##    def ensure_config_exists(cls):
-##        "Ensure required configuration exists for this extention. Return True if need to save."
-##        need_save = False
-##        if ensure_section_exists(cls.__name__):
-##            need_save = True
-##        if ensure_values_exist_in_section(cls.__name__, cls.values):
-##            need_save = True
-##        return need_save
+    @classmethod
+    def ensure_bindings_exist(cls) -> bool:
+        "Ensure key bindings exist in user extensions config. Return True if need to save."
+        need_save = False
+        section = cls.__name__+'_cfgBindings'
+        if ensure_section_exists(section):
+            need_save = True
+        if ensure_values_exist_in_section(section, cls.bind_defaults):
+            need_save = True
+        return need_save
+
+    @classmethod
+    def ensure_config_exists(cls):
+        "Ensure required configuration exists for this extention. Return True if need to save."
+        need_save = False
+        if ensure_section_exists(cls.__name__):
+            need_save = True
+        if ensure_values_exist_in_section(cls.__name__, cls.values):
+            need_save = True
+        return need_save
 
     @classmethod
     def reload(cls):
@@ -183,6 +183,7 @@ class lintcheck:
         # Get line, message id, and message from pylint output
         line = message['line']
         msg_id = message['message-id']
+        symbol = message['symbol']
         msg = message['message']
 
         # Go to line pylint is talking about
@@ -197,7 +198,7 @@ class lintcheck:
         indent_match_idx = len(lines)-2 if len(lines) > 1 else 0
         indent = get_line_indent(lines[indent_match_idx])
         # Set last line of section (empty) to pylint message in a comment
-        lines[-1] = ' '*indent+self.comment+msg_id+': '+msg
+        lines[-1] = ' '*indent+self.comment+symbol+' ('+msg_id+'): '+msg
         # Re-add empty line so we don't break text around comment
         lines.append('')
         # Save changes
@@ -241,11 +242,14 @@ class lintcheck:
                          'Please install pylint to use this extension.')
             lines.append('')
             self.formatter.set_region(head, tail, chars, lines)
+            # Make bell sound so user knows they need to pay attension
+            self.text.bell()
             return
         # Make sure file is saved.
         self.files.maybesave()
         # If not saved, do not run. Would break file.
         if not self.files.get_saved():
+            self.text.bell()
             return
         # Get arguments
         file = os.path.abspath(self.files.filename)
@@ -256,7 +260,7 @@ class lintcheck:
         jobs = max(0, jobs)
         args = [file, f'--output={self.pylint_file}',
                 '--output-format=json', f'--jobs={jobs}']
-        if self.ignore:
+        if self.ignore and self.ignore != 'None':
             if ';' not in self.ignore:
                 ignore = [self.ignore]
             else:
@@ -265,21 +269,31 @@ class lintcheck:
 
         # Run pylint on open file
         pylint.lint.run.Run(args, exit=False)
-
+        
         # Read data from temporary file as json
         data = []
         with open(self.pylint_file, 'r', encoding='utf-8') as results:
             data = json.load(results)
+
             results.close()
-        # Remove file and add code comments
-        os.remove(self.pylint_file)
+        # Add code comments
         self.add_comments(file, data)
+        
+##        # Remove file
+##        os.remove(self.pylint_file)
+        
+        # Make bell sound so user knows we are done,
+        # as it freezes a bit while pylint looks at the file
+        self.text.bell()
 
     def remove_lint_comments_event(self, _) -> None:
         "Remove all pylint comments."
         # Get selected region lines
         head, tail, chars, lines = self.formatter.get_region()
         if not self.comment in chars:
+            # Make bell sound so user knows this ran even though
+            # nothing happened.
+            self.text.bell()
             return
         # Using dict so we can reverse and enumerate
         ldict = dict(enumerate(lines))

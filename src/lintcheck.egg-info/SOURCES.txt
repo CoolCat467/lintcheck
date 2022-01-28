@@ -1,0 +1,11 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+src/lintcheck/__init__.py
+src/lintcheck.egg-info/PKG-INFO
+src/lintcheck.egg-info/SOURCES.txt
+src/lintcheck.egg-info/dependency_links.txt
+src/lintcheck.egg-info/entry_points.txt
+src/lintcheck.egg-info/requires.txt
+src/lintcheck.egg-info/top_level.txt
