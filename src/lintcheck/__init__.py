@@ -8,10 +8,11 @@
 
 __title__ = 'lintcheck'
 __author__ = 'CoolCat467'
-__version__ = '0.1.0'
+__license__ = 'GPLv3'
+__version__ = '0.1.1'
 __ver_major__ = 0
 __ver_minor__ = 1
-__ver_patch__ = 0
+__ver_patch__ = 1
 
 import os
 import json
@@ -187,20 +188,17 @@ class lintcheck:# pylint: disable=C0103
         msg = message['message']
 
         # Go to line pylint is talking about
-        self.editwin.gotoline(max(0, line-1))
-##        self.flist.gotofileline(file, max(0, line-1))
+        self.editwin.gotoline(line)
+##        self.flist.gotofileline(file, line-1)
         # Get format region
         head, tail, chars, lines = self.formatter.get_region()
         # If there is already a pylint from us comment there, ignore that line.
         if self.comment in chars:
             return
         # Figure out line indent
-        indent_match_idx = len(lines)-2 if len(lines) > 1 else 0
-        indent = get_line_indent(lines[indent_match_idx])
-        # Set last line of section (empty) to pylint message in a comment
-        lines[-1] = ' '*indent+self.comment+symbol+' ('+msg_id+'): '+msg
-        # Re-add empty line so we don't break text around comment
-        lines.append('')
+        indent = get_line_indent(lines[0])
+        # Add comment line
+        lines = [' '*indent+self.comment+symbol+' ('+msg_id+'): '+msg] + lines
         # Save changes
         self.formatter.set_region(head, tail, chars, lines)
 
