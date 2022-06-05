@@ -20,3 +20,7 @@ See `pylint --help` for more information.
 
 Option `jobs` is the number of processes pylint should use when
 checking your code, using `--jobs`. See `pylint --help` for more information.
+
+Option `search_wrap` is a boolian of whether or not searching for
+the next `# lintcheck: ` comment will wrap around or not, defaults to
+False.
