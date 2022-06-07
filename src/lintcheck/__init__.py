@@ -6,18 +6,19 @@
 
 # Programmed by CoolCat467
 
+from __future__ import annotations
+
 __title__ = 'lintcheck'
 __author__ = 'CoolCat467'
 __license__ = 'GPLv3'
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __ver_major__ = 0
 __ver_minor__ = 2
-__ver_patch__ = 0
+__ver_patch__ = 1
 
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast, List, Dict
 
 import os
-import json
 from functools import wraps
 
 from tkinter import messagebox
@@ -55,7 +56,7 @@ def check_installed() -> bool:
             # Get extension class keybinding defaults
             add_data = ''
             if hasattr(cls, 'values'):
-                # Get config defaults
+                # Get configuration defaults
                 values = '\n'.join(f'{key} = {default}' for key, default in cls.values.items())
                 # Add to add_data
                 add_data += f"\n[{__title__}]\n{values}"
@@ -64,7 +65,7 @@ def check_installed() -> bool:
                 values = '\n'.join(f'{event} = {key}' for event, key in cls.bind_defaults.items())
                 # Add to add_data
                 add_data += f"\n[{__title__}_cfgBindings]\n{values}"
-            # Make sure linebreaks will go properly in terminal
+            # Make sure line-breaks will go properly in terminal
             add_data = add_data.replace('\n', '\\n')
             # Tell them command
             print(f"echo -e '{add_data}' | sudo tee -a {ex_defaults}")
@@ -73,9 +74,38 @@ def check_installed() -> bool:
             print(f'ERROR: Somehow, {__title__} was installed improperly, no {__title__} class '\
                   'found in module. Please report this on github.\n')
     else:
-        print('Config should be good!')
+        print('configuration should be good!')
         return True
     return False
+
+class Reporter:
+    "Reporter class"
+    def __init__(self) -> None:
+        self.linter = None
+        self.messages: List[Dict[str, Any]] = []
+
+    def handle_message(self, msg) -> None:
+        "handle_message"
+        data: Dict[str, Any] = {}
+        for attr in ('abspath', 'column', 'line', 'msg', 'msg_id', 'symbol'):
+            data[attr] = getattr(msg, attr)
+        self.messages.append(data)
+
+    def on_set_current_module(self, modname, filepath) -> None:
+        "on_set_current_module"
+
+    def display_messages(self, section) -> None:
+        "display_messages"
+
+    def on_close(self, stats, previous_stats) -> None:
+        "on_close"
+
+    def display_reports(self, sect) -> None:
+        "display_reports"
+    
+    def get_messages(self) -> List[dict]:
+        "Return Messages"
+        return self.messages
 
 def get_line_indent(text: str, char: str=' ') -> int:
     "Return line indent."
@@ -86,7 +116,7 @@ def get_line_indent(text: str, char: str=' ') -> int:
     return idx
 
 def ensure_section_exists(section: str) -> bool:
-    "Ensure section exists in user extensions config. Return True if created."
+    "Ensure section exists in user extensions configuration. Return True if created."
     if not section in idleConf.GetSectionList('user', 'extensions'):
         idleConf.userCfg['extensions'].AddSection(section)
         return True
@@ -105,7 +135,7 @@ def undo_block(func: F) -> F:
         return result
     return cast(F, undo_wrapper)
 
-def ensure_values_exist_in_section(section: str, values: dict) -> bool:
+def ensure_values_exist_in_section(section: str, values: Dict[str, str]) -> bool:
     "For each key in values, make sure key exists. If not, create and set to value. "\
          "Return True if created any defaults."
     need_save = False
@@ -132,14 +162,14 @@ class lintcheck:# pylint: disable=C0103
             ('R_emove Lint Comments', '<<remove-lint-comments>>')
         ] )
     ]
-    # Default values for config file
+    # Default values for configuration file
     values = {'enable': 'True',
               'enable_editor': 'True',
               'enable_shell': 'False',
               'ignore': 'None',
               'jobs': '0',
               'search_wrap': 'False'}
-    # Default keybinds for config file
+    # Default key-binds for configuration file
     bind_defaults = {'lint-check': '<Control-Shift-Key-C>',
                      'remove-lint-comments': '<Control-Alt-Key-c>',
                      'find-next-lint-comment': '<Alt-Key-c>'}
@@ -152,26 +182,24 @@ class lintcheck:# pylint: disable=C0103
 
     def __init__(self, editwin):
         "Initialize the settings for this extension."
+        # pylint: disable=C0401
         self.editwin = editwin#idlelib.pyshell.PyShellEditorWindow
         self.text = editwin.text#idlelib.multicall.MultiCallCreator
         self.formatter = editwin.fregion#idlelib.format.FormatRegion
 ##        self.flist = editwin.flist#idlelib.pyshell.PyShellFileList
         self.files = editwin.io#idlelib.iomenu.IOBinding
 
-        self.pylint_file = os.path.expanduser(
-            os.path.join(idleConf.userdir, 'pylint-out.json'))
-
 ##        self.text.bind('<<lint-check>>', self.lint_check_event)
 ##        self.text.bind('<<lint-remove-comments>>', self.remove_lint_comments_event)
-        for attrname in (a for a in dir(self) if not a.startswith('_')):
-            if attrname.endswith('_event'):
-                bind_name = '-'.join(attrname.split('_')[:-1]).lower()
-                self.text.bind(f'<<{bind_name}>>', getattr(self, attrname))
-##                print(f'{attrname} -> {bind_name}')
+        for attr_name in (a for a in dir(self) if not a.startswith('_')):
+            if attr_name.endswith('_event'):
+                bind_name = '-'.join(attr_name.split('_')[:-1]).lower()
+                self.text.bind(f'<<{bind_name}>>', getattr(self, attr_name))
+##                print(f'{attr_name} -> {bind_name}')
 
     @classmethod
     def ensure_bindings_exist(cls) -> bool:
-        "Ensure key bindings exist in user extensions config. Return True if need to save."
+        "Ensure key bindings exist in user extensions configuration. Return True if need to save."
         need_save = False
         section = f'{cls.__name__}_cfgBindings'
         if ensure_section_exists(section):
@@ -181,8 +209,8 @@ class lintcheck:# pylint: disable=C0103
         return need_save
 
     @classmethod
-    def ensure_config_exists(cls) -> bool:
-        "Ensure required configuration exists for this extention. Return True if need to save."
+    def ensure_configuration_exists(cls) -> bool:
+        "Ensure required configuration exists for this extension. Return True if need to save."
         need_save = False
         if ensure_section_exists(cls.__name__):
             need_save = True
@@ -192,14 +220,14 @@ class lintcheck:# pylint: disable=C0103
 
     @classmethod
     def reload(cls) -> None:
-        "Load class variables from config."
+        "Load class variables from configuration."
 ##        # Ensure file default values exist so they appear in settings menu
-##        save = cls.ensure_config_exists()
+##        save = cls.ensure_configuration_exists()
 ##        if cls.ensure_bindings_exist() or save:
 ##            idleConf.SaveUserCfgFiles()
-        # For all possible config values
+        # For all possible configuration values
         for key, default in cls.values.items():
-            # Set attribute of key name to key value from config file
+            # Set attribute of key name to key value from configuration file
             if not key in {'enable', 'enable_editor', 'enable_shell'}:
                 value = idleConf.GetOption('extensions',
                                            cls.__name__,
@@ -218,22 +246,22 @@ class lintcheck:# pylint: disable=C0103
         chars = self.formatter.get_region()[2]
         return self.get_msg_line(0, text) in chars
 
-    def add_comment(self, message: dict, max_exist_up: int=0) -> bool:
+    def add_comment(self, message: Dict, max_exist_up: int=0) -> bool:
         "Return True if added new comment, False if already exists."
-        # Get line and message from mypy output
+        # Get line and message from output
 ##        file = message['file']
         line = message['line']
         msg = message['message']
 
-        # If there is already a mypy from us comment there, ignore that line.
+        # If there is already a comment from us there, ignore that line.
         # +1-1 is so at least up by 1 is checked, range(0) = []
         for i in range(max_exist_up+1):
             if self.comment_exists(line-(i-1), msg):
                 return False
 
-        # Go to line mypy is talking about
+        # Go to line checker is talking about
         self.editwin.gotoline(line)
-##        self.flist.gotofileline(file, line)
+##        self.flist.gotofileline(file, line) # pylint: disable=C0401
         # Get format region
         head, tail, chars, lines = self.formatter.get_region()
         # Figure out line indent
@@ -244,31 +272,25 @@ class lintcheck:# pylint: disable=C0103
         self.formatter.set_region(head, tail, chars, lines)
         return True
 
-    def add_comments(self, target_filename: str, lint_json: list) -> list[int]:
-        "Add comments for each line given in lint_json, from bottom to top."
-        files: dict[str, list[dict[str, Any]]] = {}
-        start_line = self.editwin.getlineno()
-        for comment in lint_json:
-            # Make sure used attributes exist (always should)
-            for attr in ('line', 'column', 'path', 'message-id', 'message'):
-                if not attr in comment:
-                    break
-            else:# If did not exit prematurely (by break)
-                filename = os.path.abspath(comment['path'])
-                message = {
+    def add_comments(self, target_filename: str, lint_messages: List) -> List[int]:
+        "Add comments for each line given in lint_messages, from bottom to top."
+        files: Dict[str, List[Dict[str, Any]]] = {}
+        for comment in lint_messages:
+            filename = os.path.abspath(comment['abspath'])
+            if not filename in files:
+                files[filename] = []
+            
+            head = f"{comment['symbol']} ({comment['msg_id']}): "
+            for idx, msg in enumerate(comment['msg'].splitlines()):
+                files[filename].append({
                     'file': filename,
-                    'line': comment['line'],
                     'column': comment['column'],
-                    'message': f"{comment['symbol']} "\
-                    f"({comment['message-id']}): {comment['message']}"
-                }
-
-                if not filename in files:
-                    files[filename] = []
-                files[filename].append(message)
+                    'line': comment['line'],
+                    'message': msg if idx != 0 else f'{head}{msg}'
+                })
 
         # Only handling messages for target filename
-        line_data: dict[int, list] = {}
+        line_data: Dict[int, List] = {}
         if target_filename in files:
             for message in files[target_filename]:
                 line: int = message['line']
@@ -276,8 +298,11 @@ class lintcheck:# pylint: disable=C0103
                     line_data[line] = []
                 line_data[line].append(message)
 
-        line_order = tuple(sorted(line_data, reverse=True))
-        first = line_order[-1] if line_order else start_line
+        line_order = list(sorted(line_data, reverse=True))
+        first = line_order[-1] if line_order else self.editwin.getlineno()
+        
+        if not first in line_order:
+            line_order[first] = []
 
         for filename in {f for f in files if f != target_filename}:
             line_data[first].append({
@@ -296,7 +321,7 @@ class lintcheck:# pylint: disable=C0103
         return comments
 
     def ask_save_dialog(self) -> bool:
-        "Ask to save dialog stolen from idlelib.runscript.ScriptBinding"
+        "Ask to save dialog stolen from idlelib.runscript.ScriptBinding"# pylint: disable=C0402
         msg = 'Source Must Be Saved\n' + 5*' ' + 'OK to Save?'
         confirm = messagebox.askokcancel(
             title='Save Before Run or Check',
@@ -347,8 +372,7 @@ class lintcheck:# pylint: disable=C0103
         except ValueError:
             jobs = 0
         jobs = max(0, jobs)
-        args = [file, f'--output={self.pylint_file}',
-                '--output-format=json', f'--jobs={jobs}']
+        args = [file, f'--jobs={jobs}']
         if self.ignore and self.ignore != 'None':
             if ';' not in self.ignore:
                 ignore = [self.ignore]
@@ -357,16 +381,11 @@ class lintcheck:# pylint: disable=C0103
             args.append('--disable='+','.join(ignore))
 
         # Run pylint on open file
-        pylint.lint.run.Run(args, exit=False)
-
-        # Read data from temporary file as json
-        data = []
-        with open(self.pylint_file, 'r', encoding='utf-8') as results:
-            data = json.load(results)
-            results.close()
+        reporter = Reporter()
+        pylint.lint.run.Run(args, reporter=reporter, exit=False)
 
         # Add code comments
-        lines = self.add_comments(file, data)
+        lines = self.add_comments(file, reporter.get_messages())
 
         # Return to where we started but offset by added lines
         add = 0
@@ -393,7 +412,7 @@ class lintcheck:# pylint: disable=C0103
         ldict = dict(enumerate(lines))
         for idx in sorted(ldict.keys(), reverse=True):
             line = ldict[idx]
-            # Get line indent, see if after indent there is mypy comment
+            # Get line indent, see if after indent there is comment
             indent = get_line_indent(line)
             if line[indent:].startswith(self.comment):
                 # If so, remove line
@@ -406,10 +425,10 @@ class lintcheck:# pylint: disable=C0103
         "Find next comment."
         self.reload()
 
-        # Get dialog singleton (slighty sketchy, but no other public way)
+        # Get dialog singleton (slightly sketchy, but no other public way)
         search_dialog = search._setup(self.text)# pylint: disable=protected-access
 
-        # Get current search params
+        # Get current search prams
         prev_text = search_dialog.engine.getpat()
         prev_regx = search_dialog.engine.isre()
         prev_case = search_dialog.engine.iscase()
@@ -424,7 +443,7 @@ class lintcheck:# pylint: disable=C0103
         search_dialog.engine.backvar.set(False)
         # Find current pattern
         search_dialog.find_again(self.text)
-        # Re-apply previous search params
+        # Re-apply previous search prams
         search_dialog.engine.setpat(prev_text)
         search_dialog.engine.revar.set(prev_regx)
         search_dialog.engine.casevar.set(prev_case)

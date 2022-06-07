@@ -1,4 +1,2 @@
 pylint
 tkinter
-idlelib
-typing
