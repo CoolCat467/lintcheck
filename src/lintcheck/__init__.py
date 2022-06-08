@@ -11,10 +11,10 @@ from __future__ import annotations
 __title__ = 'lintcheck'
 __author__ = 'CoolCat467'
 __license__ = 'GPLv3'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __ver_major__ = 0
 __ver_minor__ = 2
-__ver_patch__ = 1
+__ver_patch__ = 2
 
 from typing import Any, Callable, TypeVar, cast, List, Dict
 
@@ -72,9 +72,10 @@ def check_installed() -> bool:
             print()
         else:
             print(f'ERROR: Somehow, {__title__} was installed improperly, no {__title__} class '\
-                  'found in module. Please report this on github.\n')
+                  'found in module. Please report this on github.', file=os.sys.stderr)
+            os.sys.exit(1)
     else:
-        print('configuration should be good!')
+        print(f'Configuration should be good! (v{__version__})')
         return True
     return False
 
