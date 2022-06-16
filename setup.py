@@ -11,7 +11,7 @@ import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
 
-version = '0.2.2'
+version = '0.2.3'
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 install_requires = ['pylint']

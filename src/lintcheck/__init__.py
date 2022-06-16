@@ -11,14 +11,15 @@ from __future__ import annotations
 __title__ = 'lintcheck'
 __author__ = 'CoolCat467'
 __license__ = 'GPLv3'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 __ver_major__ = 0
 __ver_minor__ = 2
-__ver_patch__ = 2
+__ver_patch__ = 3
 
 from typing import Any, Callable, TypeVar, cast, List, Dict
 
 import os
+import sys
 from functools import wraps
 
 from tkinter import messagebox
@@ -72,8 +73,8 @@ def check_installed() -> bool:
             print()
         else:
             print(f'ERROR: Somehow, {__title__} was installed improperly, no {__title__} class '\
-                  'found in module. Please report this on github.', file=os.sys.stderr)
-            os.sys.exit(1)
+                  'found in module. Please report this on github.', file=sys.stderr)
+            sys.exit(1)
     else:
         print(f'Configuration should be good! (v{__version__})')
         return True
@@ -103,7 +104,7 @@ class Reporter:
 
     def display_reports(self, sect) -> None:
         "display_reports"
-    
+
     def get_messages(self) -> List[dict]:
         "Return Messages"
         return self.messages
@@ -152,12 +153,15 @@ def ensure_values_exist_in_section(section: str, values: Dict[str, str]) -> bool
 # then it prevents other bindings of same event type from running.
 # If returns None, normal and others are also run.
 
-class lintcheck:# pylint: disable=C0103
+class lintcheck:# pylint: disable=invalid-name
     "Add comments from pylint to an open program."
+    __slots__ = ('editwin', 'text', 'formatter', 'files')
     # Extend the file and format menus.
     menudefs = [
-        ('file', [
-            ('_Lint Check File', '<<lint-check>>')
+        ('edit', [
+            None,
+            ('_Lint Check File', '<<lint-check>>'),
+            ('Find Next Lint Comment', '<<find-next-lint-comment>>')
         ] ),
         ('format', [
             ('R_emove Lint Comments', '<<remove-lint-comments>>')
@@ -181,7 +185,7 @@ class lintcheck:# pylint: disable=C0103
     jobs = '0'
     search_wrap = 'False'
 
-    def __init__(self, editwin):
+    def __init__(self, editwin) -> None:
         "Initialize the settings for this extension."
         # pylint: disable=C0401
         self.editwin = editwin#idlelib.pyshell.PyShellEditorWindow
@@ -244,15 +248,15 @@ class lintcheck:# pylint: disable=C0103
     def comment_exists(self, line: int, text: str) -> bool:
         "Return True if comment for message already exists."
         self.editwin.gotoline(line-1)
-        chars = self.formatter.get_region()[2]
+        chars: str = self.formatter.get_region()[2]
         return self.get_msg_line(0, text) in chars
 
-    def add_comment(self, message: Dict, max_exist_up: int=0) -> bool:
+    def add_comment(self, message: Dict[str, Any], max_exist_up: int=0) -> bool:
         "Return True if added new comment, False if already exists."
         # Get line and message from output
 ##        file = message['file']
-        line = message['line']
-        msg = message['message']
+        line: int = message['line']
+        msg: str = message['message']
 
         # If there is already a comment from us there, ignore that line.
         # +1-1 is so at least up by 1 is checked, range(0) = []
@@ -276,13 +280,14 @@ class lintcheck:# pylint: disable=C0103
     def add_comments(self, target_filename: str, lint_messages: List) -> List[int]:
         "Add comments for each line given in lint_messages, from bottom to top."
         files: Dict[str, List[Dict[str, Any]]] = {}
+        start_line = self.editwin.getlineno()
         for comment in lint_messages:
             filename = os.path.abspath(comment['abspath'])
             if not filename in files:
                 files[filename] = []
-            
+
             head = f"{comment['symbol']} ({comment['msg_id']}): "
-            for idx, msg in enumerate(comment['msg'].splitlines()):
+            for idx, msg in enumerate(reversed(comment['msg'].splitlines())):
                 files[filename].append({
                     'file': filename,
                     'column': comment['column'],
@@ -299,11 +304,12 @@ class lintcheck:# pylint: disable=C0103
                     line_data[line] = []
                 line_data[line].append(message)
 
-        line_order = list(sorted(line_data, reverse=True))
-        first = line_order[-1] if line_order else self.editwin.getlineno()
-        
-        if not first in line_order:
-            line_order[first] = []
+        line_order: List[int] = list(sorted(line_data, reverse=True))
+        first: int = line_order[-1] if line_order else start_line
+
+        if not first in line_data:# if used starting line
+            line_data[first] = []
+            line_order.append(first)
 
         for filename in {f for f in files if f != target_filename}:
             line_data[first].append({
@@ -340,10 +346,10 @@ class lintcheck:# pylint: disable=C0103
         self.reload()
 
         # Get file we are checking
-        file = os.path.abspath(self.files.filename)
+        file: str = os.path.abspath(self.files.filename)
 
         # Remember where we started
-        start_line_no = self.editwin.getlineno()
+        start_line_no: int = self.editwin.getlineno()
 
         if not _HAS_LINT:
             add = 0
@@ -430,16 +436,18 @@ class lintcheck:# pylint: disable=C0103
         search_dialog = search._setup(self.text)# pylint: disable=protected-access
 
         # Get current search prams
-        prev_text = search_dialog.engine.getpat()
-        prev_regx = search_dialog.engine.isre()
-        prev_case = search_dialog.engine.iscase()
-        prev_wrap = search_dialog.engine.iswrap()
-        prev_back = search_dialog.engine.isback()
+        prev_text: str  = search_dialog.engine.getpat()
+        prev_regx: bool = search_dialog.engine.isre()
+        prev_case: bool = search_dialog.engine.iscase()
+        prev_word: bool = search_dialog.engine.isword()
+        prev_wrap: bool = search_dialog.engine.iswrap()
+        prev_back: bool = search_dialog.engine.isback()
         # Set search pattern to comment starter
         pattern = f'\s*{self.comment}'# pylint: disable=anomalous-backslash-in-string
         search_dialog.engine.setcookedpat(pattern)
         search_dialog.engine.revar.set(True)
         search_dialog.engine.casevar.set(True)
+        search_dialog.engine.wordvar.set(False)
         search_dialog.engine.wrapvar.set(self.search_wrap == 'True')
         search_dialog.engine.backvar.set(False)
         # Find current pattern
@@ -448,6 +456,7 @@ class lintcheck:# pylint: disable=C0103
         search_dialog.engine.setpat(prev_text)
         search_dialog.engine.revar.set(prev_regx)
         search_dialog.engine.casevar.set(prev_case)
+        search_dialog.engine.wordvar.set(prev_word)
         search_dialog.engine.wrapvar.set(prev_wrap)
         search_dialog.engine.backvar.set(prev_back)
         return 'break'
