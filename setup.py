@@ -11,7 +11,7 @@ import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
 
-version = '0.2.3'
+version = '0.3.0'
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 install_requires = ['pylint']
@@ -90,7 +90,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
