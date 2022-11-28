@@ -1,2 +1,3 @@
 [console_scripts]
 lintcheck = lintcheck:check_installed
+

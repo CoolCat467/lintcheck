@@ -4,9 +4,11 @@ Version: 0.3.0
 Summary: Pylint extension for IDLE
 Home-page: https://github.com/CoolCat467/lintcheck
 Author: CoolCat467
+License: UNKNOWN
 Project-URL: Bug Reports, https://github.com/CoolCat467/lintcheck/issues
 Project-URL: Source, https://github.com/CoolCat467/lintcheck
 Keywords: pylint,idle,extension,development
+Platform: UNKNOWN
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: Topic :: Software Development :: Build Tools
@@ -47,3 +49,5 @@ checking your code, using `--jobs`. See `pylint --help` for more information.
 Option `search_wrap` is a boolian of whether or not searching for
 the next `# lintcheck: ` comment will wrap around or not, defaults to
 False.
+
+
