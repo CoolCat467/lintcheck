@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.1.5 # must match requirements_dev.txt
+    rev: v2.2.2 # must match requirements_dev.txt
     hooks:
       - id: pycln
         args: [--config=pyproject.toml, src]
   - repo: https://github.com/psf/black
-    rev: 23.3.0 # must match requirements_dev.txt
+    rev: 23.9.1 # must match requirements_dev.txt
     hooks:
       - id: black
         language_version: python3.11
@@ -16,7 +16,7 @@ repos:
       - id: isort
         name: isort (python)
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.9-for-vscode
+    rev: v3.0.3
     hooks:
       - id: prettier
         types_or: [yaml]
