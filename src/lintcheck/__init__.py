@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Lint Check - Use pylint to check open file, then add comments to file.
 
 "Lint Check Extension"
@@ -19,11 +18,12 @@ __ver_patch__ = 1
 import os
 import sys
 from functools import wraps
+from tkinter import Event, Tk, messagebox
+from typing import Any, Callable, ClassVar, TypeVar, cast
+
 from idlelib import search, searchengine
 from idlelib.config import idleConf
 from idlelib.pyshell import PyShellEditorWindow
-from tkinter import Event, Tk, messagebox
-from typing import Any, Callable, TypeVar, cast
 
 _HAS_LINT = True
 try:
@@ -33,57 +33,81 @@ except ImportError:
     _HAS_LINT = False
 
 
+def get_required_config(
+    values: dict[str, str],
+    bind_defaults: dict[str, str],
+) -> str:
+    """Get required configuration file data."""
+    config = ""
+    # Get configuration defaults
+    settings = "\n".join(
+        f"{key} = {default}" for key, default in values.items()
+    )
+    if settings:
+        config += f"\n[{__title__}]\n{settings}"
+        if bind_defaults:
+            config += "\n"
+    # Get key bindings data
+    settings = "\n".join(
+        f"{event} = {key}" for event, key in bind_defaults.items()
+    )
+    if settings:
+        config += f"\n[{__title__}_cfgBindings]\n{settings}"
+    return config
+
+
 def check_installed() -> bool:
-    "Make sure extension installed."
+    """Make sure extension installed."""
     # Get list of system extensions
-    extensions = list(idleConf.defaultCfg["extensions"])
+    extensions = set(idleConf.defaultCfg["extensions"])
+
+    # Do we have the user extend extension?
+    has_user = "idleuserextend" in idleConf.GetExtensions(active_only=True)
+
+    # If we don't, things get messy and we need to change the root config file
+    ex_defaults = idleConf.defaultCfg["extensions"].file
+    if has_user:
+        # Otherwise, idleuserextend patches IDLE and we only need to modify
+        # the user config file
+        ex_defaults = idleConf.userCfg["extensions"].file
+        extensions |= set(idleConf.userCfg["extensions"])
+
+    # Import this extension (this file),
+    module = __import__(__title__)
+
+    # Get extension class
+    if not hasattr(module, __title__):
+        print(
+            f"ERROR: Somehow, {__title__} was installed improperly, "
+            f"no {__title__} class found in module. Please report "
+            "this on github.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    cls = getattr(module, __title__)
+
+    # Get extension class keybinding defaults
+    required_config = get_required_config(
+        getattr(cls, "values", {}),
+        getattr(cls, "bind_defaults", {}),
+    )
+
     # If this extension not in there,
     if __title__ not in extensions:
         # Tell user how to add it to system list.
         print(f"{__title__} not in system registered extensions!")
         print(
-            f"Please run the following command to add {__title__} to system extensions list.\n"
+            f"Please run the following command to add {__title__} "
+            + "to system extensions list.\n",
         )
-        ex_defaults = idleConf.defaultCfg["extensions"].file
-
-        # Import this extension (this file),
-        try:
-            module = __import__(__title__)
-        except ModuleNotFoundError:
-            print(f"{__title__} is not installed!")
-            return False
-        # Get extension class
-        if hasattr(module, __title__):
-            cls = getattr(module, __title__)
-            # Get extension class keybinding defaults
-            add_data = ""
-            if hasattr(cls, "values"):
-                # Get configuration defaults
-                values = "\n".join(
-                    f"{key} = {default}" for key, default in cls.values.items()
-                )
-                # Add to add_data
-                add_data += f"\n[{__title__}]\n{values}"
-            if hasattr(cls, "bind_defaults"):
-                # Get keybindings data
-                values = "\n".join(
-                    f"{event} = {key}"
-                    for event, key in cls.bind_defaults.items()
-                )
-                # Add to add_data
-                add_data += f"\n[{__title__}_cfgBindings]\n{values}"
-            # Make sure line-breaks will go properly in terminal
-            add_data = add_data.replace("\n", "\\n")
-            # Tell them command
-            print(f"echo -e '{add_data}' | sudo tee -a {ex_defaults}")
-            print()
-        else:
-            print(
-                f"ERROR: Somehow, {__title__} was installed improperly, no {__title__} class "
-                "found in module. Please report this on github.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        # Make sure line-breaks will go properly in terminal
+        add_data = required_config.replace("\n", "\\n")
+        # Tell them the command
+        append = "| sudo tee -a"
+        if has_user:
+            append = ">>"
+        print(f"echo -e '{add_data}' {append} {ex_defaults}\n")
     else:
         print(f"Configuration should be good! (v{__version__})")
         return True
@@ -95,10 +119,10 @@ class Reporter:
     __slots__ = ("linter", "messages")
 
     def __init__(self) -> None:
-        self.linter: "pylint.lint.pylinter.PyLinter" = None
+        self.linter: pylint.lint.pylinter.PyLinter = None
         self.messages: list[dict[str, str | int]] = []
 
-    def handle_message(self, msg: "pylint.message.message.Message") -> None:
+    def handle_message(self, msg: pylint.message.message.Message) -> None:
         "Record message"
         # Convert message object into dictionary
         data: dict[str, Any] = {}
@@ -111,19 +135,19 @@ class Reporter:
         "on_set_current_module"
 
     def display_messages(
-        self, section: "pylint.reporters.ureports.nodes.Section"
+        self, section: pylint.reporters.ureports.nodes.Section
     ) -> None:
         "display_messages"
 
     def on_close(
         self,
-        stats: "pylint.utils.linterstats.LinterStats",
-        previous_stats: "pylint.utils.linterstats.LinterStats",
+        stats: pylint.utils.linterstats.LinterStats,
+        previous_stats: pylint.utils.linterstats.LinterStats,
     ) -> None:
         "on_close"
 
     def display_reports(
-        self, section: "pylint.reporters.ureports.nodes.EvaluationSection"
+        self, section: pylint.reporters.ureports.nodes.EvaluationSection
     ) -> None:
         "display_reports"
 
@@ -145,14 +169,6 @@ def get_line_indent(text: str, char: str = " ") -> int:
     return 0
 
 
-def ensure_section_exists(section: str) -> bool:
-    "Ensure section exists in user extensions configuration, return if edited"
-    if not section in idleConf.GetSectionList("user", "extensions"):
-        idleConf.userCfg["extensions"].AddSection(section)
-        return True
-    return False
-
-
 F = TypeVar("F", bound=Callable[..., Any])
 
 
@@ -160,7 +176,7 @@ def undo_block(func: F) -> F:
     "Mark block of edits as a single undo block."
 
     @wraps(func)
-    def undo_wrapper(self: "lintcheck", *args: Any, **kwargs: Any) -> Any:
+    def undo_wrapper(self: lintcheck, *args: Any, **kwargs: Any) -> Any:
         "Wrap function in start and stop undo events."
         self.text.undo_block_start()
         result = func(self, *args, **kwargs)
@@ -170,16 +186,32 @@ def undo_block(func: F) -> F:
     return cast(F, undo_wrapper)
 
 
-def ensure_values_exist_in_section(
-    section: str, values: dict[str, str]
-) -> bool:
-    """For each key in values, make sure key exists. Return if edited
+def ensure_section_exists(section: str) -> bool:
+    """Ensure section exists in user extensions configuration.
 
-    If not, create and set to value."""
+    Returns True if edited.
+    """
+    if section not in idleConf.GetSectionList("user", "extensions"):
+        idleConf.userCfg["extensions"].AddSection(section)
+        return True
+    return False
+
+
+def ensure_values_exist_in_section(
+    section: str,
+    values: dict[str, str],
+) -> bool:
+    """For each key in values, make sure key exists. Return if edited.
+
+    If not, create and set to value.
+    """
     need_save = False
     for key, default in values.items():
         value = idleConf.GetOption(
-            "extensions", section, key, warn_on_default=False
+            "extensions",
+            section,
+            key,
+            warn_on_default=False,
         )
         if value is None:
             idleConf.SetOption("extensions", section, key, default)
@@ -215,7 +247,7 @@ class lintcheck:  # pylint: disable=invalid-name
     "Add comments from pylint to an open program."
     __slots__ = ("editwin", "text", "formatter", "files")
     # Extend the file and format menus.
-    menudefs = [
+    menudefs: ClassVar = [
         (
             "edit",
             [
@@ -227,7 +259,7 @@ class lintcheck:  # pylint: disable=invalid-name
         ("format", [("R_emove Lint Comments", "<<remove-lint-comments>>")]),
     ]
     # Default values for configuration file
-    values = {
+    values: ClassVar = {
         "enable": "True",
         "enable_editor": "True",
         "enable_shell": "False",
@@ -236,7 +268,7 @@ class lintcheck:  # pylint: disable=invalid-name
         "search_wrap": "False",
     }
     # Default key-binds for configuration file
-    bind_defaults = {
+    bind_defaults: ClassVar = {
         "lint-check": "<Control-Shift-Key-C>",
         "remove-lint-comments": "<Control-Alt-Key-c>",
         "find-next-lint-comment": "<Alt-Key-c>",
@@ -270,7 +302,13 @@ class lintcheck:  # pylint: disable=invalid-name
 
     @classmethod
     def ensure_bindings_exist(cls) -> bool:
-        "Ensure key bindings exist in user extensions configuration. Return True if need to save."
+        """Ensure key bindings exist in user extensions configuration.
+
+        Return True if need to save.
+        """
+        if not cls.bind_defaults:
+            return False
+
         need_save = False
         section = f"{cls.__name__}_cfgBindings"
         if ensure_section_exists(section):
@@ -280,8 +318,11 @@ class lintcheck:  # pylint: disable=invalid-name
         return need_save
 
     @classmethod
-    def ensure_configuration_exists(cls) -> bool:
-        "Ensure required configuration exists for this extension. Return if need to save."
+    def ensure_config_exists(cls) -> bool:
+        """Ensure required configuration exists for this extension.
+
+        Return True if need to save.
+        """
         need_save = False
         if ensure_section_exists(cls.__name__):
             need_save = True
@@ -291,11 +332,14 @@ class lintcheck:  # pylint: disable=invalid-name
 
     @classmethod
     def reload(cls) -> None:
-        "Load class variables from configuration."
-        # # Ensure file default values exist so they appear in settings menu
-        # save = cls.ensure_configuration_exists()
-        # if cls.ensure_bindings_exist() or save:
-        #     idleConf.SaveUserCfgFiles()
+        """Load class variables from configuration."""
+        # Ensure file default values exist so they appear in settings menu
+        save = cls.ensure_config_exists()
+        if cls.ensure_bindings_exist() or save:
+            idleConf.SaveUserCfgFiles()
+
+        # Reload configuration file
+        idleConf.LoadCfgFiles()
 
         # Reload configuration file
         idleConf.LoadCfgFiles()
@@ -303,9 +347,12 @@ class lintcheck:  # pylint: disable=invalid-name
         # For all possible configuration values
         for key, default in cls.values.items():
             # Set attribute of key name to key value from configuration file
-            if not key in {"enable", "enable_editor", "enable_shell"}:
+            if key not in {"enable", "enable_editor", "enable_shell"}:
                 value = idleConf.GetOption(
-                    "extensions", cls.__name__, key, default=default
+                    "extensions",
+                    cls.__name__,
+                    key,
+                    default=default,
                 )
                 setattr(cls, key, value)
 
@@ -364,7 +411,7 @@ class lintcheck:  # pylint: disable=invalid-name
             path = comment["abspath"]
             assert isinstance(path, str)
             filename = os.path.abspath(path)
-            if not filename in files:
+            if filename not in files:
                 files[filename] = []
 
             head = f"{comment['symbol']} ({comment['msg_id']}): "
@@ -429,14 +476,14 @@ class lintcheck:  # pylint: disable=invalid-name
             for message in files[target_filename]:
                 line = message["line"]
                 assert isinstance(line, int), "Line must be int"
-                if not line in line_data:
+                if line not in line_data:
                     line_data[line] = []
                 line_data[line].append(message)
 
         line_order: list[int] = list(sorted(line_data, reverse=True))
         first: int = line_order[-1] if line_order else start_line
 
-        if not first in line_data:  # if used starting line
+        if first not in line_data:  # if used starting line
             line_data[first] = []
             line_order.append(first)
 
@@ -520,7 +567,7 @@ class lintcheck:  # pylint: disable=invalid-name
 
     @undo_block
     def lint_check_event(self, event: Event[Any] | None = None) -> str:
-        "Preform a pylint check and add comments."
+        "Perform a pylint check and add comments."
         # pylint: disable=unused-argument
         init_return, file, start_line_no = self.initial()
 
@@ -560,7 +607,7 @@ class lintcheck:  # pylint: disable=invalid-name
         # pylint: disable=unused-argument
         # Get selected region lines
         head, tail, chars, lines = self.formatter.get_region()
-        if not self.comment in chars:
+        if self.comment not in chars:
             # Make bell sound so user knows this ran even though
             # nothing happened.
             self.text.bell()
@@ -578,7 +625,7 @@ class lintcheck:  # pylint: disable=invalid-name
         return "break"
 
     @undo_block
-    def remove_all_lint_comments(self, event: "Event[Any]") -> str:
+    def remove_all_lint_comments(self, event: Event[Any]) -> str:
         "Remove all mypy comments."
         # pylint: disable=unused-argument
         eof_idx = self.text.index("end")
