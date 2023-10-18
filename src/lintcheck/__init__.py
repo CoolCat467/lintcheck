@@ -10,10 +10,10 @@ from __future__ import annotations
 __title__ = "lintcheck"
 __author__ = "CoolCat467"
 __license__ = "GPLv3"
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 __ver_major__ = 0
 __ver_minor__ = 3
-__ver_patch__ = 1
+__ver_patch__ = 2
 
 import os
 import sys
