@@ -18,12 +18,11 @@ __ver_patch__ = 2
 import os
 import sys
 from functools import wraps
-from tkinter import Event, Tk, messagebox
-from typing import Any, Callable, ClassVar, TypeVar, cast
-
 from idlelib import search, searchengine
 from idlelib.config import idleConf
 from idlelib.pyshell import PyShellEditorWindow
+from tkinter import Event, Tk, messagebox
+from typing import Any, Callable, ClassVar, TypeVar, cast
 
 _HAS_LINT = True
 try:
