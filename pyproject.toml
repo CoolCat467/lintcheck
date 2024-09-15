@@ -32,7 +32,7 @@ classifiers = [
 ]
 keywords = ["pylint", "idle", "extension", "development"]
 dependencies = [
-    "pylint",
+    "pylint>=3.2.7",
 ]
 
 [tool.setuptools.dynamic]
