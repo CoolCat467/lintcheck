@@ -100,15 +100,19 @@ def parse_comments(
         head = f"{comment['symbol']} ({comment['msg_id']}): "
         message_lines = comment["msg"]
         assert isinstance(message_lines, str)
+        line = comment["line"]
+        assert isinstance(line, int)
+        column = comment["column"]
+        assert isinstance(column, int)
         for idx, msg in enumerate(reversed(message_lines.splitlines())):
-            comment = utils.Comment(
+            message = utils.Comment(
                 file=filename,
-                line=comment["line"],
-                column=comment["column"],
+                line=line,
+                column=column,
                 contents=msg if idx != 0 else f"{head}{msg}",
             )
 
-            files[filename].append(comment)
+            files[filename].append(message)
     return files
 
 
@@ -194,7 +198,7 @@ class lintcheck(utils.BaseExtension):  # noqa: N801
         self,
         lint_messages: list[dict[str, str | int]],
         only_filename: str | None = None,
-    ) -> list[int]:
+    ) -> dict[str, list[int]]:
         """Add comments for each line given in lint_messages.
 
         Return list of lines where comments were added.
@@ -242,7 +246,6 @@ class lintcheck(utils.BaseExtension):  # noqa: N801
             if target_filename not in files:
                 continue
             file_comments = self.add_lint_comments_for_file(
-                target_filename,
                 files[target_filename],
             )
             file_commented_lines.update(file_comments)
@@ -305,7 +308,11 @@ class lintcheck(utils.BaseExtension):  # noqa: N801
         # Run pylint on open file
         reporter = Reporter()
         try:
-            run_pylint(args, reporter=reporter, exit=False)
+            run_pylint(
+                args,
+                reporter=reporter,  # type: ignore[arg-type]
+                exit=False,
+            )
         except SystemExit as exc:
             traceback.print_exception(exc)
             return "break"
