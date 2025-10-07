@@ -173,15 +173,18 @@ extend-ignore = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=term-missing --cov=lintcheck"
+addopts = "--cov-report=xml --cov-report=term-missing --cov=lintcheck"
 testpaths = [
     "tests",
 ]
 
 [tool.coverage.run]
 branch = true
-source = ["src"]
+source_pkgs = ["lintcheck"]
 omit = []
+parallel = true
+relative_files = true
+source = ["."]
 
 [tool.coverage.report]
 precision = 1
@@ -205,32 +208,3 @@ partial_branches = [
     "if .* or not _t.TYPE_CHECKING:",
     "if .* or not t.TYPE_CHECKING:",
 ]
-
-[tool.tox]
-legacy_tox_ini = """
-    [tox]
-    envlist = py310, py311, py312, mypy, pytest
-    isolated_build = false
-
-    [gh-actions]
-    python =
-        3.10: py310, mypy, pytest
-        3.11: py311, mypy
-        3.12: py312, mypy, pytest
-
-    [testenv]
-    setenv =
-        PYTHONPATH = {toxinidir}
-
-    [testenv:pytest]
-    deps =
-        pytest
-        pytest-cov
-        pytest-trio
-    commands = pytest --basetemp={envtmpdir}
-
-    [testenv:mypy]
-    deps =
-        mypy
-    commands = mypy src
-"""
