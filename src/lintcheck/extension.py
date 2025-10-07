@@ -33,6 +33,7 @@ from pylint.lint import Run as run_pylint  # noqa: N813
 from lintcheck import utils
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from idlelib.pyshell import PyShellEditorWindow
     from tkinter import Event
 
@@ -126,17 +127,22 @@ class lintcheck(utils.BaseExtension):  # noqa: N801
 
     __slots__ = ()
     # Extend the file and format menus.
-    menudefs: ClassVar = [
+    menudefs: ClassVar[
+        Sequence[tuple[str, Sequence[tuple[str, str] | None]]]
+    ] = (
         (
             "edit",
-            [
+            (
                 None,
                 ("_Lint Check File", "<<lint-check>>"),
                 ("Find Next Lint Comment", "<<find-next-lint-comment>>"),
-            ],
+            ),
         ),
-        ("format", [("R_emove Lint Comments", "<<remove-lint-comments>>")]),
-    ]
+        (
+            "format",
+            (("R_emove Lint Comments", "<<remove-lint-comments>>"),),
+        ),
+    )
     # Default values for configuration file
     values: ClassVar = {
         "enable": "True",
