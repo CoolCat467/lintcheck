@@ -38,10 +38,11 @@ repos:
         additional_dependencies:
           - tomli
   - repo: https://github.com/adhtruong/mirrors-typos
-    rev: v1.40.1
+    rev: v1.41.0
     hooks:
       - id: typos
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.19.0
+    rev: v1.20.0
     hooks:
       - id: zizmor
+        args: ["--fix", "--no-progress"]

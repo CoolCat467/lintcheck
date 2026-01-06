@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Software Development",
     "Topic :: Text Editors :: Integrated Development Environments (IDE)",
@@ -54,7 +55,7 @@ tools = [
     "pre-commit>=4.2.0",
     "attrs>=25.3.0",
     "types-idlelib>=0.0.0",
-    "mypy>=1.18.2",
+    "mypy>=1.19.1",
 ]
 
 [project.urls]
@@ -68,7 +69,10 @@ lintcheck = "lintcheck:check_installed"
 lintcheck = ["py.typed"]
 
 [tool.mypy]
-files = ["src/lintcheck/", "tests"]
+files = [
+    "src/lintcheck/",
+    "tests",
+]
 enable_error_code = [
     "truthy-bool",
     "mutable-override",
@@ -173,7 +177,7 @@ extend-ignore = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=xml --cov-report=term-missing --cov=lintcheck"
+addopts = "--cov-report=term-missing --cov=lintcheck"
 testpaths = [
     "tests",
 ]
